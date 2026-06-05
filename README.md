@@ -26,7 +26,45 @@ Para alcançar a automação, a arquitetura foi implementada seguindo 4 etapas f
 #### Edite o arquivo de configuração do IPsec:
 
 ```bash
-nano /etc/ipsec.conf
+# /etc/ipsec.conf - Openswan IPsec configuration file
+
+# This file:  /usr/share/doc/openswan/ipsec.conf-sample
+#
+# Manual:     ipsec.conf.5
+
+version 2.0     # conforms to second version of ipsec.conf specification
+
+# basic configuration
+config setup
+        # Do not set debug options to debug configuration issues!
+        # plutodebug / klipsdebug = "all", "none" or a combation from below:
+        # "raw crypt parsing emitting control klips pfkey natt x509 dpd private"
+        # eg:
+        # plutodebug="control parsing"
+        # Again: only enable plutodebug or klipsdebug when asked by a developer
+        #
+        # enable to get logs per-peer
+        # plutoopts="--perpeerlog"
+        #
+        # Enable core dumps (might require system changes, like ulimit -C)
+        # This is required for abrtd to work properly
+        # Note: incorrect SElinux policies might prevent pluto writing the core
+        dumpdir=/var/run/pluto/
+        #
+        # NAT-TRAVERSAL support, see README.NAT-Traversal
+        nat_traversal=yes
+        # exclude networks used on server side by adding %v4:!a.b.c.0/24
+        # It seems that T-Mobile in the US and Rogers/Fido in Canada are
+        # using 25/8 as "private" address space on their 3G network.
+        # This range has not been announced via BGP (at least upto 2010-12-21)
+        virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!10.111.116.0/24,%v4:192.168.80.200/29
+        # OE is now off by default. Uncomment and change to on, to enable.
+        oe=off
+        # which IPsec stack to use. auto will try netkey, then klips then mast
+        protostack=netkey
+        # Use this to log to a file, or disable logging on embedded systems (like openwrt)
+        plutostderrlog=/var/log/ipsec.log
+        interfaces=%defaultroute
 
 # Add connections here
 
@@ -38,22 +76,23 @@ conn fortigate-primario
         compress=yes
         aggrmode=yes
         ikev2=no
-# Rede do Linux
+#Rede do Linux
         leftid=@ishboxh
         leftxauthclient=yes
         leftmodecfgclient=no
         left=192.168.1.201
         leftxauthusername=IH4658338
         leftsourceip=10.114.243.247
-# Rede Fortigate - Link Principal
+#Rede Fortigate
         right=teftgv.martins.com.br
         rightsubnet=0.0.0.0/0
         rightnexthop=%defaultroute
         rightxauthserver=yes
         rightmodecfgserver=yes
-# Phase 1 e 2
+#phase1
         ike=3des-sha1;modp1536
         keylife=28800s
+#phase2
         phase2=esp
         phase2alg=aes128-sha1;modp1536
 
@@ -65,22 +104,23 @@ conn fortigate-secundario
         compress=yes
         aggrmode=yes
         ikev2=no
-# Rede do Linux (Mesma origem)
+#Rede do Linux
         leftid=@ishboxh
         leftxauthclient=yes
         leftmodecfgclient=no
         left=192.168.1.201
         leftxauthusername=IH4658338
         leftsourceip=10.114.243.247
-# Rede Fortigate - Link Secundário (Backup)
+#Rede Fortigate Backup
         right=teftgv2.martins.com.br
         rightsubnet=0.0.0.0/0
         rightnexthop=%defaultroute
         rightxauthserver=yes
         rightmodecfgserver=yes
-# Phase 1 e 2
+#phase1
         ike=3des-sha1;modp1536
         keylife=28800s
+#phase2
         phase2=esp
         phase2alg=aes128-sha1;modp1536
 ```
